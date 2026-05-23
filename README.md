@@ -112,6 +112,9 @@ npm start
 ### Leaderboard
 ![Leaderboard](screenshots/leaderboard.png)
 
+### Result Page
+![Result](screenshots/score.png)
+
 ---
 
 ## 🔌 API Endpoints
