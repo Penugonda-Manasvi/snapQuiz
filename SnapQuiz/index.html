@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapQuiz — Quiz · Score · Dominate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Outfit',sans-serif;background:#03050f;color:#f0f6ff;min-height:100vh;overflow-x:hidden}
+    canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;position:relative;z-index:1}
+    .wrap{width:100%;max-width:460px;display:flex;flex-direction:column;align-items:center}
+
+    .brand-block{text-align:center;margin-bottom:1.2rem;animation:dropIn 0.7s cubic-bezier(.22,1,.36,1) both}
+    .brand-name{font-family:'Space Mono',monospace;font-size:3.5rem;font-weight:700;letter-spacing:-3px;line-height:1;background:linear-gradient(135deg,#fff 30%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .brand-tag{font-size:0.75rem;letter-spacing:3px;text-transform:uppercase;color:#60a5fa;margin-top:0.4rem;font-family:'Space Mono',monospace}
+
+    .glow-ring{width:180px;height:4px;margin:0.8rem auto;border-radius:2px;background:linear-gradient(90deg,transparent,#3b82f6,#60a5fa,transparent);animation:glow-pulse 2s ease-in-out infinite}
+    @keyframes glow-pulse{0%,100%{opacity:0.5;transform:scaleX(0.8)}50%{opacity:1;transform:scaleX(1)}}
+
+    .tagline{font-size:0.95rem;color:#94a3b8;text-align:center;margin-bottom:1.8rem;animation:fadeUp 0.6s ease 0.3s both;line-height:1.6}
+    .tagline span{color:#60a5fa;font-weight:600}
+
+    .live{display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:1.5rem;animation:fadeUp 0.6s ease 0.35s both}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:blink 1.2s ease-in-out infinite}
+    .live-txt{font-size:0.75rem;color:#94a3b8;font-family:'Space Mono',monospace}
+    .live-txt span{color:#60a5fa;font-weight:700}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+    .stats{display:flex;gap:0.5rem;width:100%;margin-bottom:1.5rem;animation:fadeUp 0.6s ease 0.4s both}
+    .stat{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:0.75rem;text-align:center;transition:all 0.2s}
+    .stat:hover{border-color:#3b82f6;background:rgba(59,130,246,0.1);transform:translateY(-2px)}
+    .stat-num{font-family:'Space Mono',monospace;font-size:1.2rem;font-weight:700;color:#60a5fa}
+    .stat-label{font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
+    .form-card{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(59,130,246,0.25);border-radius:24px;padding:2rem;backdrop-filter:blur(20px);animation:fadeUp 0.6s ease 0.5s both;box-shadow:0 0 40px rgba(59,130,246,0.07)}
+    .form-label{font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin-bottom:0.5rem;font-family:'Space Mono',monospace}
+    input{width:100%;padding:0.9rem 1.1rem;background:rgba(0,0,0,0.4);border:1.5px solid rgba(59,130,246,0.3);border-radius:12px;color:#f0f6ff;font-size:1rem;font-family:'Outfit',sans-serif;outline:none;transition:all 0.2s;margin-bottom:0.4rem}
+    input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
+    input::placeholder{color:#475569}
+
+    .topics-label{font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin:1rem 0 0.5rem;font-family:'Space Mono',monospace}
+    .topics{display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.3rem}
+    .topic{border:1px solid rgba(59,130,246,0.3);border-radius:20px;padding:0.3rem 0.85rem;font-size:0.78rem;color:#94a3b8;cursor:pointer;transition:all 0.15s}
+    .topic:hover,.topic.active{border-color:#3b82f6;color:#60a5fa;background:rgba(59,130,246,0.12)}
+
+    .btn{width:100%;padding:1rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;border-radius:14px;font-size:1.05rem;font-family:'Outfit',sans-serif;font-weight:800;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;letter-spacing:-0.3px;box-shadow:0 4px 24px rgba(59,130,246,0.3)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(59,130,246,0.45)}
+    .btn:active{transform:scale(0.98)}
+    .btn.success{background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 4px 24px rgba(16,185,129,0.3)}
+    .shine{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);animation:shine 2.5s ease 1s infinite;pointer-events:none}
+    @keyframes shine{0%{left:-100%}100%{left:200%}}
+
+    .err{color:#f87171;font-size:0.73rem;font-family:'Space Mono',monospace;display:none;margin-bottom:0.8rem}
+
+    .footer{display:flex;justify-content:space-between;width:100%;margin-top:1.2rem;animation:fadeUp 0.6s ease 0.6s both}
+    .footer-txt{font-size:0.68rem;color:#475569;font-family:'Space Mono',monospace}
+
+    @keyframes dropIn{from{opacity:0;transform:translateY(-30px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="page">
+  <div class="wrap">
+
+    <div class="brand-block">
+      <div class="brand-name">SnapQuiz</div>
+      <div class="brand-tag">⚡ Quiz · Score · Dominate</div>
+    </div>
+    <div class="glow-ring"></div>
+
+    <div class="tagline">
+      <span>Answer quick. Rank higher.</span>
+    </div>
+
+    <div class="live">
+      <div class="live-dot"></div>
+      <div class="live-txt"><span id="pc">0</span> players online right now</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-num">10</div><div class="stat-label">Questions</div></div>
+      <div class="stat"><div class="stat-num">30s</div><div class="stat-label">Per Q</div></div>
+      <div class="stat"><div class="stat-num">#1</div><div class="stat-label">Top Rank</div></div>
+      <div class="stat"><div class="stat-num">🏆</div><div class="stat-label">Leaderboard</div></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-label">Your name</div>
+      <input type="text" id="playerName" placeholder="Enter your name..." maxlength="20"/>
+      <div class="err" id="errMsg">⚡ Please enter your name to continue!</div>
+
+      <div class="topics-label">Pick a topic</div>
+      <div class="topics">
+        <div class="topic active" onclick="sel(this)">🌍 General</div>
+        <div class="topic" onclick="sel(this)">💻 DSA</div>
+        <div class="topic" onclick="sel(this)">🖥️ OS</div>
+        <div class="topic" onclick="sel(this)">⚽ Sports</div>
+        <div class="topic" onclick="sel(this)">🧩 OOPS</div>
+        <div class="topic" onclick="sel(this)">🍕 Food</div>
+      </div>
+
+      <button class="btn" id="startBtn" onclick="startQuiz()">
+        <div class="shine"></div>
+        Start Quiz ⚡
+      </button>
+    </div>
+
+    <div class="footer">
+      <div class="footer-txt">SnapQuiz © 2026</div>
+      <div class="footer-txt">HTML · CSS · JS</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const pts = [];
+  for (let i = 0; i < 60; i++) {
+    pts.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*2+0.5, dx:(Math.random()-0.5)*0.4, dy:(Math.random()-0.5)*0.4, o:Math.random()*0.5+0.1 });
+  }
+  function drawBg() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(96,165,250,${p.o})`;ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;});
+    pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<120){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(59,130,246,${0.08*(1-d/120)})`;ctx.lineWidth=0.5;ctx.stroke();}}));
+    requestAnimationFrame(drawBg);
+  }
+  drawBg();
+  window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+  let count = 0;
+  const iv = setInterval(()=>{count+=Math.floor(Math.random()*60+30);if(count>=1243){count=1243;clearInterval(iv);}document.getElementById('pc').textContent=count.toLocaleString();},40);
+
+  // Topic selector — strips emoji from label to get clean topic name
+  let selectedTopic = 'General';
+  function sel(el) {
+    document.querySelectorAll('.topic').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    // Remove emoji and trim to get clean topic name
+    selectedTopic = el.textContent.replace(/[^a-zA-Z]/g, '').trim();
+  }
+
+  function startQuiz() {
+    const name = document.getElementById('playerName').value.trim();
+    const err  = document.getElementById('errMsg');
+    const inp  = document.getElementById('playerName');
+    const btn  = document.getElementById('startBtn');
+    if (!name) {
+      err.style.display = 'block';
+      inp.style.borderColor = '#f87171';
+      inp.focus();
+      return;
+    }
+    err.style.display = 'none';
+    inp.style.borderColor = '#22c55e';
+    btn.classList.add('success');
+    btn.innerHTML = "Let's go, " + name + "! 🔥";
+    setTimeout(() => {
+      btn.innerHTML = '<div class="shine"></div>Loading quiz... →';
+      // ✅ Pass both name AND topic to quiz.html
+      window.location.href = 'quiz.html?name=' + encodeURIComponent(name) + '&topic=' + encodeURIComponent(selectedTopic);
+    }, 1200);
+  }
+
+  document.getElementById('playerName').addEventListener('input', function () {
+    this.style.borderColor = 'rgba(59,130,246,0.3)';
+    document.getElementById('errMsg').style.display = 'none';
+  });
+</script>
+
+</body>
+</html>

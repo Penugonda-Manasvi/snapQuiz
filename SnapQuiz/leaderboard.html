@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapQuiz — Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Outfit',sans-serif;background:#03050f;color:#f0f6ff;min-height:100vh;overflow-x:hidden}
+    canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;position:relative;z-index:1}
+    .wrap{width:100%;max-width:440px}
+
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;animation:fadeDown 0.5s ease both}
+    .brand{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#fff,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .play-btn{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:20px;padding:4px 14px;font-size:0.75rem;font-family:'Space Mono',monospace;color:#60a5fa;cursor:pointer;transition:all 0.2s}
+    .play-btn:hover{background:rgba(59,130,246,0.2);border-color:#3b82f6}
+
+    .hero{text-align:center;margin-bottom:1.5rem;animation:fadeDown 0.5s ease 0.1s both}
+    .hero h1{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff;letter-spacing:-1px}
+    .hero p{font-size:0.82rem;color:#94a3b8;margin-top:0.3rem}
+
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:0.6rem;margin-bottom:1.5rem;animation:fadeUp 0.5s ease 0.2s both}
+    .podium-item{display:flex;flex-direction:column;align-items:center;gap:0.4rem}
+    .podium-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;font-family:'Space Mono',monospace}
+    .podium-name{font-size:0.7rem;color:#94a3b8;font-family:'Space Mono',monospace;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+    .podium-score{font-size:0.68rem;color:#60a5fa;font-family:'Space Mono',monospace}
+    .podium-block{border-radius:8px 8px 0 0;width:70px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:1.2rem;font-weight:700}
+
+    .p1 .podium-avatar{background:rgba(250,204,21,0.15);border:2px solid #facc15;color:#facc15}
+    .p1 .podium-block{background:#1a1500;border:1px solid #facc15;border-bottom:none;height:80px;color:#facc15}
+    .p2 .podium-avatar{background:rgba(148,163,184,0.1);border:2px solid #94a3b8;color:#94a3b8}
+    .p2 .podium-block{background:#0f1117;border:1px solid #94a3b8;border-bottom:none;height:60px;color:#94a3b8}
+    .p3 .podium-avatar{background:rgba(180,120,60,0.1);border:2px solid #b4783c;color:#b4783c}
+    .p3 .podium-block{background:#0f0a05;border:1px solid #b4783c;border-bottom:none;height:45px;color:#b4783c}
+
+    .list-header{display:grid;grid-template-columns:40px 1fr 80px;gap:0.5rem;padding:0.5rem 1rem;font-size:0.65rem;color:#334155;text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;animation:fadeUp 0.5s ease 0.3s both}
+    .list{display:flex;flex-direction:column;gap:0.4rem;animation:fadeUp 0.5s ease 0.4s both;max-height:240px;overflow-y:auto}
+    .list::-webkit-scrollbar{width:3px}
+    .list::-webkit-scrollbar-track{background:transparent}
+    .list::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+
+    .list-item{background:#0d1117;border:1px solid #1e3a5f;border-radius:12px;padding:0.75rem 1rem;display:grid;grid-template-columns:40px 1fr 80px;align-items:center;gap:0.5rem;transition:all 0.2s}
+    .list-item:hover{border-color:#3b82f6;transform:translateX(3px)}
+    .list-item.highlight{border-color:#3b82f6;background:#0a1020}
+    .list-item.loading{justify-content:center;display:flex;color:#334155;font-size:0.8rem;font-family:'Space Mono',monospace;padding:2rem}
+
+    .rank-num{font-family:'Space Mono',monospace;font-size:0.8rem;font-weight:700;color:#334155}
+    .rank-num.gold{color:#facc15}
+    .rank-num.silver{color:#94a3b8}
+    .rank-num.bronze{color:#b4783c}
+
+    .player-info{display:flex;flex-direction:column}
+    .player-nm{font-size:0.88rem;font-weight:600;color:#f0f6ff}
+    .player-date{font-size:0.65rem;color:#334155;font-family:'Space Mono',monospace}
+    .score-val{font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:700;color:#60a5fa;text-align:right}
+
+    .empty{text-align:center;padding:2rem;color:#334155;font-family:'Space Mono',monospace;font-size:0.8rem}
+    .empty span{display:block;font-size:2rem;margin-bottom:0.5rem}
+
+    .footer-btns{display:flex;gap:0.6rem;margin-top:1.2rem;animation:fadeUp 0.5s ease 0.5s both}
+    .btn{flex:1;padding:0.85rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;border-radius:12px;font-size:0.85rem;font-family:'Outfit',sans-serif;font-weight:800;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(59,130,246,0.3)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,0.4)}
+    .btn:active{transform:scale(0.98)}
+    .btn.outline{background:transparent;border:1.5px solid rgba(59,130,246,0.3);color:#60a5fa;box-shadow:none}
+    .btn.outline:hover{border-color:#3b82f6;background:rgba(59,130,246,0.08)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="page">
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">SnapQuiz</div>
+      <div class="play-btn" onclick="window.location.href='index.html'">Play Again →</div>
+    </div>
+
+    <div class="hero">
+      <h1>🏆 Leaderboard</h1>
+      <p>Top players — updated live</p>
+    </div>
+
+    <div class="podium" id="podium"></div>
+
+    <div class="list-header">
+      <span>Rank</span>
+      <span>Player</span>
+      <span style="text-align:right">Score</span>
+    </div>
+
+    <div class="list" id="scoreList">
+      <div class="list-item loading">Loading scores...</div>
+    </div>
+
+    <div class="footer-btns">
+      <button class="btn outline" onclick="window.history.back()">← Back</button>
+      <button class="btn" onclick="window.location.href='index.html'">Play Again ⚡</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ─── Particle Background ───────────────────────────────────────
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const pts = [];
+  for (let i = 0; i < 60; i++) {
+    pts.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*2+0.5, dx:(Math.random()-0.5)*0.4, dy:(Math.random()-0.5)*0.4, o:Math.random()*0.5+0.1 });
+  }
+  function drawBg() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(96,165,250,${p.o})`;ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;});
+    pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<120){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(59,130,246,${0.08*(1-d/120)})`;ctx.lineWidth=0.5;ctx.stroke();}}));
+    requestAnimationFrame(drawBg);
+  }
+  drawBg();
+  window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+  // ─── Current Player from URL ───────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const currentPlayer = params.get('name') || '';
+
+  // ─── Format Date ───────────────────────────────────────────────
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return diff + ' days ago';
+  }
+
+  // ─── Render Podium ─────────────────────────────────────────────
+  function renderPodium(scores) {
+    const podium = document.getElementById('podium');
+    const top3 = scores.slice(0, 3);
+    if (top3.length < 3) { podium.style.display = 'none'; return; }
+    const order = [top3[1], top3[0], top3[2]];
+    const classes = ['p2', 'p1', 'p3'];
+    const positions = ['2', '1', '3'];
+    podium.innerHTML = order.map((s, i) => `
+      <div class="podium-item ${classes[i]}">
+        <div class="podium-avatar">${s.name.charAt(0).toUpperCase()}</div>
+        <div class="podium-name">${s.name}</div>
+        <div class="podium-score">${s.score}/10</div>
+        <div class="podium-block">${positions[i]}</div>
+      </div>
+    `).join('');
+  }
+
+  // ─── Render List ───────────────────────────────────────────────
+  function renderList(scores) {
+    const list = document.getElementById('scoreList');
+    if (scores.length === 0) {
+      list.innerHTML = `<div class="empty"><span>🎯</span>No scores yet.<br/>Be the first to play!</div>`;
+      return;
+    }
+    const rankColors = ['gold', 'silver', 'bronze'];
+    list.innerHTML = scores.map((s, i) => `
+      <div class="list-item ${s.name === currentPlayer ? 'highlight' : ''}">
+        <div class="rank-num ${rankColors[i] || ''}">#${i + 1}</div>
+        <div class="player-info">
+          <div class="player-nm">${s.name} ${s.name === currentPlayer ? '← You' : ''}</div>
+          <div class="player-date">${formatDate(s.createdAt || new Date())}</div>
+        </div>
+        <div class="score-val">${s.score}/10</div>
+      </div>
+    `).join('');
+  }
+
+  // ─── Fetch Scores from Backend ─────────────────────────────────
+  async function fetchScores() {
+    try {
+      const res = await fetch('http://localhost:5000/api/scores');
+      if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      // Handle both {data: [...]} and [...] response shapes
+      const scores = json.data || json;
+      renderPodium(scores);
+      renderList(scores);
+    } catch (err) {
+      console.warn('Backend not connected, showing sample data');
+      const dummyScores = [
+        { name: 'Manasvi',  score: 10, createdAt: new Date() },
+        { name: 'Sahazad',  score: 9,  createdAt: new Date() },
+        { name: 'Karishma', score: 8,  createdAt: new Date() },
+        { name: 'Shalini',  score: 7,  createdAt: new Date() },
+        { name: 'Rahul',    score: 7,  createdAt: new Date(Date.now() - 86400000) },
+        { name: 'Priya',    score: 6,  createdAt: new Date(Date.now() - 86400000) },
+      ];
+      renderPodium(dummyScores);
+      renderList(dummyScores);
+    }
+  }
+
+  fetchScores();
+</script>
+
+</body>
+</html>

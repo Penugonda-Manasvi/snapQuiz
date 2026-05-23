@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapQuiz — Quiz</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Outfit',sans-serif;background:#03050f;color:#f0f6ff;min-height:100vh;overflow-x:hidden}
+    canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;position:relative;z-index:1}
+    .wrap{width:100%;max-width:480px}
+
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;animation:fadeDown 0.5s ease both}
+    .brand{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#fff,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .score-badge{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:20px;padding:4px 14px;font-size:0.78rem;font-family:'Space Mono',monospace;color:#60a5fa}
+
+    .topic-badge{display:inline-block;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:20px;padding:3px 12px;font-size:0.68rem;font-family:'Space Mono',monospace;color:#60a5fa;margin-bottom:1rem;animation:fadeDown 0.5s ease both}
+
+    .progress-wrap{margin-bottom:1rem;animation:fadeDown 0.5s ease 0.1s both}
+    .progress-info{display:flex;justify-content:space-between;margin-bottom:0.4rem}
+    .progress-label{font-size:0.72rem;color:#94a3b8;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:1px}
+    .progress-bar{width:100%;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#60a5fa);border-radius:3px;transition:width 0.5s ease}
+
+    .timer-row{display:flex;justify-content:center;margin-bottom:1.2rem;animation:fadeUp 0.5s ease 0.15s both}
+    .timer{width:68px;height:68px;border-radius:50%;background:#0d1117;border:2px solid #1e3a5f;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.3s}
+    .timer-num{font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700;color:#60a5fa;line-height:1}
+    .timer-label{font-size:0.5rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+    .timer.danger{border-color:#f87171;animation:shake 0.3s ease infinite}
+    .timer.danger .timer-num{color:#f87171}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+    .question-card{background:#0d1117;border:1px solid #1e3a5f;border-radius:20px;padding:1.8rem;margin-bottom:1rem;animation:fadeUp 0.5s ease 0.2s both}
+    .q-num{font-size:0.7rem;color:#60a5fa;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:2px;margin-bottom:0.8rem}
+    .q-text{font-size:1.1rem;font-weight:700;color:#f0f6ff;line-height:1.5}
+
+    .options{display:flex;flex-direction:column;gap:0.6rem;animation:fadeUp 0.5s ease 0.3s both}
+    .option{background:#0d1117;border:1.5px solid #1e3a5f;border-radius:14px;padding:0.9rem 1.1rem;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:0.9rem}
+    .option:hover{border-color:#3b82f6;background:#111827;transform:translateX(4px)}
+    .option.correct{border-color:#22c55e !important;background:#0a1f0a !important;transform:translateX(4px)}
+    .option.wrong{border-color:#f87171 !important;background:#1f0a0a !important}
+    .option.disabled{pointer-events:none}
+    .opt-letter{width:32px;height:32px;border-radius:8px;background:#1e3a5f;border:1px solid #2d5a8e;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:0.75rem;font-weight:700;color:#60a5fa;flex-shrink:0;transition:all 0.18s}
+    .option:hover .opt-letter{background:#3b82f6;color:#fff;border-color:#3b82f6}
+    .option.correct .opt-letter{background:#22c55e !important;color:#fff !important;border-color:#22c55e !important}
+    .option.wrong .opt-letter{background:#f87171 !important;color:#fff !important;border-color:#f87171 !important}
+    .opt-text{font-size:0.92rem;color:#94a3b8;font-weight:500}
+    .option:hover .opt-text{color:#f0f6ff}
+
+    .feedback{text-align:center;font-size:0.82rem;font-family:'Space Mono',monospace;margin-top:0.8rem;min-height:20px}
+    .feedback.correct{color:#22c55e}
+    .feedback.wrong{color:#f87171}
+
+    .saving{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(3,5,15,0.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+    .saving.show{display:flex}
+    .saving-txt{font-family:'Space Mono',monospace;font-size:0.9rem;color:#60a5fa}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="saving" id="savingOverlay">
+  <div style="font-size:2rem">💾</div>
+  <div class="saving-txt">Saving your score...</div>
+</div>
+
+<div class="page">
+  <div class="wrap" id="quizWrap">
+    <div class="topbar">
+      <div class="brand">SnapQuiz</div>
+      <div class="score-badge">Score: <span id="scoreVal">0</span></div>
+    </div>
+
+    <div class="topic-badge" id="topicBadge">📚 General</div>
+
+    <div class="progress-wrap">
+      <div class="progress-info">
+        <div class="progress-label">Question <span id="qNum">1</span> of 10</div>
+        <div class="progress-label"><span id="pct">10</span>%</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:10%"></div>
+      </div>
+    </div>
+
+    <div class="timer-row">
+      <div class="timer" id="timerEl">
+        <div class="timer-num" id="timerNum">30</div>
+        <div class="timer-label">secs</div>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <div class="q-num" id="qLabel">Question 01</div>
+      <div class="q-text" id="qText">Loading question...</div>
+    </div>
+
+    <div class="options" id="optionsEl"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<script>
+  // ─── Particle Background ───────────────────────────────────────
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const pts = [];
+  for (let i = 0; i < 60; i++) {
+    pts.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*2+0.5, dx:(Math.random()-0.5)*0.4, dy:(Math.random()-0.5)*0.4, o:Math.random()*0.5+0.1 });
+  }
+  function drawBg() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(96,165,250,${p.o})`;ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;});
+    pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<120){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(59,130,246,${0.08*(1-d/120)})`;ctx.lineWidth=0.5;ctx.stroke();}}));
+    requestAnimationFrame(drawBg);
+  }
+  drawBg();
+  window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+  // ─── All Questions by Topic ────────────────────────────────────
+  const allQuestions = {
+
+    General: [
+      { q: "Which country has won the most FIFA World Cup titles?", opts: ["Germany", "Argentina", "Brazil", "Italy"], ans: 2 },
+      { q: "What is the only planet in our solar system that rotates on its side?", opts: ["Neptune", "Saturn", "Uranus", "Jupiter"], ans: 2 },
+      { q: "How many bones are in the adult human body?", opts: ["206", "212", "198", "224"], ans: 0 },
+      { q: "Which element has the chemical symbol 'Au'?", opts: ["Silver", "Aluminum", "Argon", "Gold"], ans: 3 },
+      { q: "What is the smallest country in the world by area?", opts: ["Monaco", "San Marino", "Vatican City", "Liechtenstein"], ans: 2 },
+      { q: "Which ocean is the largest?", opts: ["Atlantic", "Indian", "Arctic", "Pacific"], ans: 3 },
+      { q: "How many sides does a dodecagon have?", opts: ["10", "11", "12", "14"], ans: 2 },
+      { q: "Which planet has the most moons?", opts: ["Jupiter", "Saturn", "Uranus", "Neptune"], ans: 1 },
+      { q: "What is the hardest natural substance on Earth?", opts: ["Quartz", "Diamond", "Topaz", "Corundum"], ans: 1 },
+      { q: "In which year did the Berlin Wall fall?", opts: ["1987", "1988", "1989", "1991"], ans: 2 }
+    ],
+
+    DSA: [
+      { q: "What is the time complexity of binary search in the worst case?", opts: ["O(n)", "O(log n)", "O(n log n)", "O(1)"], ans: 1 },
+      { q: "Which data structure uses LIFO order?", opts: ["Queue", "Stack", "Deque", "Heap"], ans: 1 },
+      { q: "What is the worst-case time complexity of QuickSort?", opts: ["O(n log n)", "O(n)", "O(n²)", "O(log n)"], ans: 2 },
+      { q: "Which traversal of a BST gives elements in sorted order?", opts: ["Preorder", "Postorder", "Inorder", "Level order"], ans: 2 },
+      { q: "What data structure is used internally by a recursive function call?", opts: ["Queue", "Heap", "Stack", "Array"], ans: 2 },
+      { q: "Which algorithm is used to find the shortest path in an unweighted graph?", opts: ["DFS", "Dijkstra", "BFS", "Bellman-Ford"], ans: 2 },
+      { q: "What is the space complexity of Merge Sort?", opts: ["O(1)", "O(log n)", "O(n)", "O(n²)"], ans: 2 },
+      { q: "In a Max Heap, the root always contains the ___?", opts: ["Smallest element", "Median element", "Random element", "Largest element"], ans: 3 },
+      { q: "Which of these is NOT a stable sorting algorithm?", opts: ["Merge Sort", "Bubble Sort", "Insertion Sort", "Quick Sort"], ans: 3 },
+      { q: "What is the time complexity of inserting into a Hash Table on average?", opts: ["O(n)", "O(log n)", "O(1)", "O(n²)"], ans: 2 }
+    ],
+
+    OS: [
+      { q: "Which scheduling algorithm can cause starvation?", opts: ["Round Robin", "FCFS", "Priority Scheduling", "SJF"], ans: 2 },
+      { q: "What is a deadlock?", opts: ["A process that runs forever", "Two processes waiting for each other indefinitely", "A memory overflow error", "A CPU cache miss"], ans: 1 },
+      { q: "Which of the following is NOT a condition for deadlock?", opts: ["Mutual Exclusion", "Hold and Wait", "Preemption", "Circular Wait"], ans: 2 },
+      { q: "What does TLB stand for in OS?", opts: ["Transfer Lookup Buffer", "Translation Lookaside Buffer", "Temporary Load Block", "Thread Level Base"], ans: 1 },
+      { q: "Which memory allocation strategy suffers most from external fragmentation?", opts: ["Best Fit", "First Fit", "Worst Fit", "Next Fit"], ans: 2 },
+      { q: "What is thrashing in OS?", opts: ["Excessive CPU usage", "Excessive paging causing low CPU utilization", "Memory leak in kernel", "Too many open files"], ans: 1 },
+      { q: "Which of these is a non-preemptive scheduling algorithm?", opts: ["Round Robin", "SRTF", "FCFS", "Multilevel Queue"], ans: 2 },
+      { q: "What is the purpose of a semaphore?", opts: ["Memory management", "Process synchronization", "CPU scheduling", "Disk management"], ans: 1 },
+      { q: "In virtual memory, a page fault occurs when?", opts: ["RAM is full", "CPU overheats", "Required page is not in RAM", "Disk is full"], ans: 2 },
+      { q: "Which system call is used to create a new process in Linux?", opts: ["exec()", "spawn()", "fork()", "create()"], ans: 2 }
+    ],
+
+    Sports: [
+      { q: "How many players are on a basketball court per team during a game?", opts: ["4", "6", "5", "7"], ans: 2 },
+      { q: "Which country invented the game of cricket?", opts: ["Australia", "India", "England", "South Africa"], ans: 2 },
+      { q: "How many Grand Slam tournaments are there in tennis?", opts: ["3", "4", "5", "6"], ans: 1 },
+      { q: "In football, what is a 'hat-trick'?", opts: ["3 assists in a game", "3 goals by one player in a game", "3 yellow cards", "3 saves by goalkeeper"], ans: 1 },
+      { q: "Which country has won the most Olympic gold medals overall?", opts: ["China", "Russia", "Germany", "USA"], ans: 3 },
+      { q: "How long is a standard Olympic swimming pool?", opts: ["25m", "75m", "50m", "100m"], ans: 2 },
+      { q: "In which sport is the term 'love' used to mean zero?", opts: ["Badminton", "Squash", "Tennis", "Table Tennis"], ans: 2 },
+      { q: "How many players are in a rugby union team?", opts: ["13", "14", "15", "16"], ans: 2 },
+      { q: "Which athlete has won the most Olympic medals ever?", opts: ["Usain Bolt", "Michael Phelps", "Carl Lewis", "Mark Spitz"], ans: 1 },
+      { q: "What is the maximum break (score) in a game of snooker?", opts: ["137", "147", "157", "167"], ans: 1 }
+    ],
+
+    OOPS: [
+      { q: "Which OOP concept allows a class to have multiple methods with the same name but different parameters?", opts: ["Overriding", "Encapsulation", "Overloading", "Abstraction"], ans: 2 },
+      { q: "What is the output of calling a pure virtual function directly?", opts: ["0", "Null", "Compile error", "Runtime error"], ans: 2 },
+      { q: "Which access specifier makes a member accessible only within the class?", opts: ["Public", "Protected", "Private", "Internal"], ans: 2 },
+      { q: "Which OOP principle is violated if a subclass cannot be used in place of its parent?", opts: ["DRY", "Open/Closed", "Liskov Substitution", "Interface Segregation"], ans: 2 },
+      { q: "What is the difference between method overloading and overriding?", opts: ["Same class vs different class, same signature", "Compile time vs runtime polymorphism", "Both are runtime", "Both are compile time"], ans: 1 },
+      { q: "Which concept hides internal implementation and shows only functionality?", opts: ["Inheritance", "Polymorphism", "Encapsulation", "Abstraction"], ans: 3 },
+      { q: "A constructor cannot have which of the following?", opts: ["Parameters", "Overloading", "A return type", "Access modifiers"], ans: 2 },
+      { q: "Which keyword prevents a class from being inherited in Java?", opts: ["static", "abstract", "final", "private"], ans: 2 },
+      { q: "What type of relationship does 'composition' represent?", opts: ["Has-a (strong)", "Is-a", "Has-a (weak)", "Uses-a"], ans: 0 },
+      { q: "Which design pattern ensures only one instance of a class exists?", opts: ["Factory", "Observer", "Singleton", "Decorator"], ans: 2 }
+    ],
+
+    Food: [
+      { q: "Which country is the origin of the dish 'Sushi'?", opts: ["China", "Korea", "Thailand", "Japan"], ans: 3 },
+      { q: "What is the main ingredient in traditional hummus?", opts: ["Lentils", "Chickpeas", "Black beans", "Kidney beans"], ans: 1 },
+      { q: "Which vitamin is produced when skin is exposed to sunlight?", opts: ["Vitamin A", "Vitamin C", "Vitamin D", "Vitamin K"], ans: 2 },
+      { q: "What type of pasta is shaped like small rice grains?", opts: ["Orzo", "Penne", "Rigatoni", "Farfalle"], ans: 0 },
+      { q: "Which spice is known as 'red gold' due to its high price?", opts: ["Turmeric", "Cardamom", "Vanilla", "Saffron"], ans: 3 },
+      { q: "What is the process of preserving food by removing moisture called?", opts: ["Fermenting", "Pickling", "Dehydration", "Pasteurization"], ans: 2 },
+      { q: "Which country consumes the most tea per capita?", opts: ["India", "China", "Turkey", "England"], ans: 2 },
+      { q: "What is 'Wagyu' famous for being?", opts: ["A type of sushi", "A Japanese beef known for marbling", "A Korean noodle dish", "A type of sake"], ans: 1 },
+      { q: "Which nut is used to make marzipan?", opts: ["Walnut", "Cashew", "Almond", "Pistachio"], ans: 2 },
+      { q: "What is the Scoville scale used to measure?", opts: ["Sweetness of fruit", "Bitterness of coffee", "Acidity of vinegar", "Spiciness of peppers"], ans: 3 }
+    ]
+  };
+
+  // ─── Get topic and player from URL ────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const playerName = params.get('name') || 'Player';
+  const topic = params.get('topic') || 'General';
+
+  // ─── Topic emoji map ──────────────────────────────────────────
+  const topicEmoji = { General:'🌍', DSA:'💻', OS:'🖥️', Sports:'⚽', OOPS:'🧩', Food:'🍕' };
+  document.getElementById('topicBadge').textContent = (topicEmoji[topic] || '📚') + ' ' + topic;
+
+  // ─── Pick questions for selected topic ────────────────────────
+  const questions = allQuestions[topic] || allQuestions['General'];
+
+  // ─── Game State ────────────────────────────────────────────────
+  let current = 0, score = 0, timer = 30, timerInterval = null, answered = false;
+
+  // ─── Load Question ─────────────────────────────────────────────
+  function loadQuestion() {
+    answered = false;
+    const q = questions[current];
+    document.getElementById('qNum').textContent = current + 1;
+    document.getElementById('pct').textContent = Math.round(((current + 1) / questions.length) * 100);
+    document.getElementById('progressFill').style.width = ((current + 1) / questions.length * 100) + '%';
+    document.getElementById('qLabel').textContent = 'Question ' + String(current + 1).padStart(2, '0');
+    document.getElementById('qText').textContent = q.q;
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+
+    const labels = ['A', 'B', 'C', 'D'];
+    const el = document.getElementById('optionsEl');
+    el.innerHTML = '';
+    q.opts.forEach((opt, i) => {
+      const div = document.createElement('div');
+      div.className = 'option';
+      div.innerHTML = `<div class="opt-letter">${labels[i]}</div><div class="opt-text">${opt}</div>`;
+      div.onclick = () => selectAnswer(i, div);
+      el.appendChild(div);
+    });
+    startTimer();
+  }
+
+  // ─── Timer ─────────────────────────────────────────────────────
+  function startTimer() {
+    clearInterval(timerInterval);
+    timer = 30;
+    document.getElementById('timerNum').textContent = timer;
+    document.getElementById('timerEl').classList.remove('danger');
+    timerInterval = setInterval(() => {
+      timer--;
+      document.getElementById('timerNum').textContent = timer;
+      if (timer <= 10) document.getElementById('timerEl').classList.add('danger');
+      if (timer <= 0) { clearInterval(timerInterval); timeUp(); }
+    }, 1000);
+  }
+
+  function timeUp() {
+    if (answered) return;
+    answered = true;
+    const fb = document.getElementById('feedback');
+    fb.textContent = "⏱ Time's up!";
+    fb.className = 'feedback wrong';
+    document.querySelectorAll('.option').forEach((o, i) => {
+      o.classList.add('disabled');
+      if (i === questions[current].ans) o.classList.add('correct');
+    });
+    setTimeout(nextQuestion, 1500);
+  }
+
+  // ─── Answer Selection ──────────────────────────────────────────
+  function selectAnswer(i, el) {
+    if (answered) return;
+    answered = true;
+    clearInterval(timerInterval);
+    const correct = questions[current].ans;
+    const fb = document.getElementById('feedback');
+    if (i === correct) {
+      el.classList.add('correct');
+      score++;
+      document.getElementById('scoreVal').textContent = score;
+      fb.textContent = "✓ Correct! Well done!";
+      fb.className = 'feedback correct';
+    } else {
+      el.classList.add('wrong');
+      document.querySelectorAll('.option')[correct].classList.add('correct');
+      fb.textContent = "✗ Wrong! Better luck next time.";
+      fb.className = 'feedback wrong';
+    }
+    document.querySelectorAll('.option').forEach(o => o.classList.add('disabled'));
+    setTimeout(nextQuestion, 1500);
+  }
+
+  // ─── Next Question ─────────────────────────────────────────────
+  function nextQuestion() {
+    current++;
+    if (current >= questions.length) { showResult(); return; }
+    loadQuestion();
+  }
+
+  // ─── Save Score to Backend ─────────────────────────────────────
+  async function saveScore() {
+    try {
+      await fetch('http://localhost:5000/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: playerName, score, total: questions.length, topic })
+      });
+    } catch (err) {
+      console.warn('Could not save score:', err);
+    }
+  }
+
+  // ─── Show Result ───────────────────────────────────────────────
+  async function showResult() {
+    clearInterval(timerInterval);
+    document.getElementById('savingOverlay').classList.add('show');
+    await saveScore();
+    window.location.href = `result.html?name=${encodeURIComponent(playerName)}&score=${score}&total=${questions.length}&topic=${encodeURIComponent(topic)}`;
+  }
+
+  // ─── Start ─────────────────────────────────────────────────────
+  loadQuestion();
+</script>
+
+</body>
+</html>
