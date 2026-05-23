@@ -62,7 +62,7 @@ SnapQuiz/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/snapquiz.git
+git clone https://github.com/Penugonda-Manasvi/snapQuiz.git
 ```
 
 ### 2️⃣ Navigate to Project Folder
