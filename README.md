@@ -104,7 +104,7 @@ npm start
 ## 📸 Screenshots
 
 ### Home Page
-![Home](screenshots/home.png)
+![Home](screenshots/index.png)
 
 ### Quiz Page
 ![Quiz](screenshots/quiz.png)
